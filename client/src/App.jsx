@@ -6,6 +6,10 @@ function App() {
   const [title, setTitle] = useState('')
   const [dueDate, setDueDate] = useState('')
 
+  const [courses, setCourses] = useState([])
+  const [courseName, setCourseName] = useState('')
+  const [courseCode, setCourseCode] = useState('')
+
   const totalAssignments = assignments.length
   const completedAssignments = assignments.filter(
     (assignment) => assignment.completed
@@ -15,7 +19,8 @@ function App() {
   const upcomingAssignments = assignments.filter(
     (assignment) =>
       !assignment.completed &&
-      new Date(assignment.dueDate + 'T00:00:00') >= new Date(new Date().toDateString())
+      new Date(assignment.dueDate + 'T00:00:00') >=
+        new Date(new Date().toDateString())
   ).length
 
   function addAssignment(event) {
@@ -47,11 +52,33 @@ function App() {
     )
   }
 
+  function addCourse(event) {
+    event.preventDefault()
+
+    if (!courseName || !courseCode) {
+      return
+    }
+
+    const newCourse = {
+      id: Date.now(),
+      name: courseName,
+      code: courseCode
+    }
+
+    setCourses([...courses, newCourse])
+    setCourseName('')
+    setCourseCode('')
+  }
+
+  function removeCourse(id) {
+    setCourses(courses.filter((course) => course.id !== id))
+  }
+
   return (
     <div className="app">
       <header>
         <h1>College Productivity Manager</h1>
-        <p>Keep track of your assignments and deadlines.</p>
+        <p>Keep track of your courses, assignments, and deadlines.</p>
       </header>
 
       <main>
@@ -79,6 +106,45 @@ function App() {
               <p>{upcomingAssignments}</p>
             </div>
           </div>
+        </section>
+
+        <section className="course-management">
+          <h2>My Courses</h2>
+
+          <form onSubmit={addCourse}>
+            <input
+              type="text"
+              placeholder="Course name"
+              value={courseName}
+              onChange={(event) => setCourseName(event.target.value)}
+            />
+
+            <input
+              type="text"
+              placeholder="Course code (example: CS220)"
+              value={courseCode}
+              onChange={(event) => setCourseCode(event.target.value)}
+            />
+
+            <button type="submit">Add Course</button>
+          </form>
+
+          {courses.length === 0 ? (
+            <p>No courses added yet. Add one above!</p>
+          ) : (
+            courses.map((course) => (
+              <div className="assignment" key={course.id}>
+                <div>
+                  <h3>{course.name}</h3>
+                  <p>{course.code}</p>
+                </div>
+
+                <button onClick={() => removeCourse(course.id)}>
+                  Remove
+                </button>
+              </div>
+            ))
+          )}
         </section>
 
         <section className="assignment-form">
