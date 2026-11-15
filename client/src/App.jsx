@@ -1,10 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
+
+import {
+  getAssignments,
+  createAssignment,
+  updateAssignment,
+  deleteAssignment
+} from './services/assignmentService'
 
 function App() {
   const [assignments, setAssignments] = useState([])
   const [title, setTitle] = useState('')
   const [dueDate, setDueDate] = useState('')
+
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   const [courses, setCourses] = useState([])
   const [courseName, setCourseName] = useState('')
@@ -15,13 +25,38 @@ function App() {
   const [projectDescription, setProjectDescription] = useState('')
   const [taskInputs, setTaskInputs] = useState({})
 
+  // Load assignments from the database when the application opens.
+  useEffect(() => {
+    async function loadAssignments() {
+      try {
+        const data = await getAssignments()
+
+        setAssignments(
+          data.map((assignment) => ({
+            ...assignment,
+            dueDate: assignment.due_date
+              ? assignment.due_date.split('T')[0]
+              : ''
+          }))
+        )
+      } catch (error) {
+        setError(error.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadAssignments()
+  }, [])
+
   const totalAssignments = assignments.length
   const completedAssignments = assignments.filter(
     (assignment) => assignment.completed
   ).length
   const remainingAssignments = totalAssignments - completedAssignments
 
-  const today = new Date().toISOString().split('T')[0]
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 
   const upcomingAssignments = assignments.filter(
     (assignment) =>
@@ -37,33 +72,87 @@ function App() {
       !assignment.completed && assignment.dueDate < today
   )
 
-  function addAssignment(event) {
+  // Add an assignment to the database.
+  async function addAssignment(event) {
     event.preventDefault()
+    setError('')
 
-    if (!title || !dueDate) {
+    if (!title.trim() || !dueDate) {
+      setError('Please enter an assignment name and due date.')
       return
     }
 
-    const newAssignment = {
-      id: Date.now(),
-      title: title,
-      dueDate: dueDate,
-      completed: false
-    }
+    try {
+      const newAssignment = await createAssignment(
+        title.trim(),
+        dueDate
+      )
 
-    setAssignments([...assignments, newAssignment])
-    setTitle('')
-    setDueDate('')
+      setAssignments((previousAssignments) => [
+        ...previousAssignments,
+        {
+          ...newAssignment,
+          dueDate: newAssignment.due_date
+            ? newAssignment.due_date.split('T')[0]
+            : ''
+        }
+      ])
+
+      setTitle('')
+      setDueDate('')
+    } catch (error) {
+      setError(error.message)
+    }
   }
 
-  function toggleComplete(id) {
-    setAssignments(
-      assignments.map((assignment) =>
-        assignment.id === id
-          ? { ...assignment, completed: !assignment.completed }
-          : assignment
-      )
+  // Update assignment completion in the database.
+  async function toggleComplete(id) {
+    setError('')
+
+    const assignment = assignments.find(
+      (item) => item.id === id
     )
+
+    if (!assignment) {
+      return
+    }
+
+    try {
+      const updatedAssignment = await updateAssignment(
+        id,
+        !assignment.completed
+      )
+
+      setAssignments((previousAssignments) =>
+        previousAssignments.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                completed: updatedAssignment.completed
+              }
+            : item
+        )
+      )
+    } catch (error) {
+      setError(error.message)
+    }
+  }
+
+  // Delete an assignment from the database.
+  async function removeAssignment(id) {
+    setError('')
+
+    try {
+      await deleteAssignment(id)
+
+      setAssignments((previousAssignments) =>
+        previousAssignments.filter(
+          (assignment) => assignment.id !== id
+        )
+      )
+    } catch (error) {
+      setError(error.message)
+    }
   }
 
   function addCourse(event) {
@@ -164,6 +253,12 @@ function App() {
       </header>
 
       <main>
+        {error && (
+          <p role="alert" className="error-message">
+            {error}
+          </p>
+        )}
+
         <section className="dashboard">
           <h2>Dashboard Overview</h2>
 
@@ -388,7 +483,9 @@ function App() {
         <section className="assignment-list">
           <h2>My Assignments</h2>
 
-          {assignments.length === 0 ? (
+          {loading ? (
+            <p>Loading assignments...</p>
+          ) : assignments.length === 0 ? (
             <p>No assignments yet. Add one above!</p>
           ) : (
             assignments.map((assignment) => (
@@ -402,6 +499,10 @@ function App() {
 
                 <button onClick={() => toggleComplete(assignment.id)}>
                   {assignment.completed ? 'Undo' : 'Complete'}
+                </button>
+
+                <button onClick={() => removeAssignment(assignment.id)}>
+                  Delete
                 </button>
               </div>
             ))
