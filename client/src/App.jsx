@@ -10,6 +10,11 @@ function App() {
   const [courseName, setCourseName] = useState('')
   const [courseCode, setCourseCode] = useState('')
 
+  const [projects, setProjects] = useState([])
+  const [projectName, setProjectName] = useState('')
+  const [projectDescription, setProjectDescription] = useState('')
+  const [taskInputs, setTaskInputs] = useState({})
+
   const totalAssignments = assignments.length
   const completedAssignments = assignments.filter(
     (assignment) => assignment.completed
@@ -81,6 +86,74 @@ function App() {
 
   function removeCourse(id) {
     setCourses(courses.filter((course) => course.id !== id))
+  }
+
+  function addProject(event) {
+    event.preventDefault()
+
+    if (!projectName || !projectDescription) {
+      return
+    }
+
+    const newProject = {
+      id: Date.now(),
+      name: projectName,
+      description: projectDescription,
+      tasks: []
+    }
+
+    setProjects([...projects, newProject])
+    setProjectName('')
+    setProjectDescription('')
+  }
+
+  function addProjectTask(projectId) {
+    const taskName = taskInputs[projectId]
+
+    if (!taskName || !taskName.trim()) {
+      return
+    }
+
+    setProjects(
+      projects.map((project) =>
+        project.id === projectId
+          ? {
+              ...project,
+              tasks: [
+                ...project.tasks,
+                {
+                  id: Date.now(),
+                  name: taskName.trim(),
+                  completed: false
+                }
+              ]
+            }
+          : project
+      )
+    )
+
+    setTaskInputs({ ...taskInputs, [projectId]: '' })
+  }
+
+  function toggleProjectTask(projectId, taskId) {
+    setProjects(
+      projects.map((project) =>
+        project.id === projectId
+          ? {
+              ...project,
+              tasks: project.tasks.map((task) =>
+                task.id === taskId
+                  ? { ...task, completed: !task.completed }
+                  : task
+              )
+            }
+          : project
+      )
+    )
+  }
+
+  function removeProject(projectId) {
+    setProjects(projects.filter((project) => project.id !== projectId))
   }
 
   return (
@@ -224,6 +297,91 @@ function App() {
                   </button>
                 </div>
               ))
+          )}
+        </section>
+
+        <section className="group-projects">
+          <h2>Group Projects</h2>
+
+          <form onSubmit={addProject}>
+            <input
+              type="text"
+              placeholder="Project name"
+              value={projectName}
+              onChange={(event) => setProjectName(event.target.value)}
+            />
+
+            <input
+              type="text"
+              placeholder="Project description"
+              value={projectDescription}
+              onChange={(event) =>
+                setProjectDescription(event.target.value)
+              }
+            />
+
+            <button type="submit">Add Project</button>
+          </form>
+
+          {projects.length === 0 ? (
+            <p>No group projects yet. Add one above!</p>
+          ) : (
+            projects.map((project) => (
+              <div className="assignment" key={project.id}>
+                <div>
+                  <h3>{project.name}</h3>
+                  <p>{project.description}</p>
+
+                  <h4>Project Tasks</h4>
+
+                  {project.tasks.length === 0 ? (
+                    <p>No tasks added yet.</p>
+                  ) : (
+                    project.tasks.map((task) => (
+                      <div key={task.id}>
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={task.completed}
+                            onChange={() =>
+                              toggleProjectTask(project.id, task.id)
+                            }
+                          />
+                          <span
+                            className={task.completed ? 'completed' : ''}
+                          >
+                            {task.name}
+                          </span>
+                        </label>
+                      </div>
+                    ))
+                  )}
+
+                  <input
+                    type="text"
+                    placeholder="Add a project task"
+                    value={taskInputs[project.id] || ''}
+                    onChange={(event) =>
+                      setTaskInputs({
+                        ...taskInputs,
+                        [project.id]: event.target.value
+                      })
+                    }
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => addProjectTask(project.id)}
+                  >
+                    Add Task
+                  </button>
+                </div>
+
+                <button onClick={() => removeProject(project.id)}>
+                  Remove Project
+                </button>
+              </div>
+            ))
           )}
         </section>
 
