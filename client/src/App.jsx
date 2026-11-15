@@ -6,6 +6,18 @@ function App() {
   const [title, setTitle] = useState('')
   const [dueDate, setDueDate] = useState('')
 
+  const totalAssignments = assignments.length
+  const completedAssignments = assignments.filter(
+    (assignment) => assignment.completed
+  ).length
+  const remainingAssignments = totalAssignments - completedAssignments
+
+  const upcomingAssignments = assignments.filter(
+    (assignment) =>
+      !assignment.completed &&
+      new Date(assignment.dueDate + 'T00:00:00') >= new Date(new Date().toDateString())
+  ).length
+
   function addAssignment(event) {
     event.preventDefault()
 
@@ -43,6 +55,32 @@ function App() {
       </header>
 
       <main>
+        <section className="dashboard">
+          <h2>Dashboard Overview</h2>
+
+          <div className="dashboard-cards">
+            <div className="dashboard-card">
+              <h3>Total Assignments</h3>
+              <p>{totalAssignments}</p>
+            </div>
+
+            <div className="dashboard-card">
+              <h3>Completed</h3>
+              <p>{completedAssignments}</p>
+            </div>
+
+            <div className="dashboard-card">
+              <h3>Remaining</h3>
+              <p>{remainingAssignments}</p>
+            </div>
+
+            <div className="dashboard-card">
+              <h3>Upcoming Deadlines</h3>
+              <p>{upcomingAssignments}</p>
+            </div>
+          </div>
+        </section>
+
         <section className="assignment-form">
           <h2>Add an Assignment</h2>
 
