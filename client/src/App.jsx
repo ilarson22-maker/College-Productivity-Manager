@@ -16,12 +16,21 @@ function App() {
   ).length
   const remainingAssignments = totalAssignments - completedAssignments
 
+  const today = new Date().toISOString().split('T')[0]
+
   const upcomingAssignments = assignments.filter(
     (assignment) =>
-      !assignment.completed &&
-      new Date(assignment.dueDate + 'T00:00:00') >=
-        new Date(new Date().toDateString())
+      !assignment.completed && assignment.dueDate >= today
   ).length
+
+  const sortedAssignments = [...assignments].sort(
+    (a, b) => a.dueDate.localeCompare(b.dueDate)
+  )
+
+  const overdueAssignments = sortedAssignments.filter(
+    (assignment) =>
+      !assignment.completed && assignment.dueDate < today
+  )
 
   function addAssignment(event) {
     event.preventDefault()
@@ -166,6 +175,56 @@ function App() {
 
             <button type="submit">Add Assignment</button>
           </form>
+        </section>
+
+        <section className="calendar">
+          <h2>Calendar & Deadlines</h2>
+
+          <h3>Overdue Assignments</h3>
+
+          {overdueAssignments.length === 0 ? (
+            <p>No overdue assignments. Great job!</p>
+          ) : (
+            overdueAssignments.map((assignment) => (
+              <div className="assignment" key={assignment.id}>
+                <div>
+                  <h3>{assignment.title}</h3>
+                  <p>Overdue: {assignment.dueDate}</p>
+                </div>
+
+                <button onClick={() => toggleComplete(assignment.id)}>
+                  Complete
+                </button>
+              </div>
+            ))
+          )}
+
+          <h3>Upcoming Assignments</h3>
+
+          {sortedAssignments.filter(
+            (assignment) =>
+              !assignment.completed && assignment.dueDate >= today
+          ).length === 0 ? (
+            <p>No upcoming assignments.</p>
+          ) : (
+            sortedAssignments
+              .filter(
+                (assignment) =>
+                  !assignment.completed && assignment.dueDate >= today
+              )
+              .map((assignment) => (
+                <div className="assignment" key={assignment.id}>
+                  <div>
+                    <h3>{assignment.title}</h3>
+                    <p>Due: {assignment.dueDate}</p>
+                  </div>
+
+                  <button onClick={() => toggleComplete(assignment.id)}>
+                    Complete
+                  </button>
+                </div>
+              ))
+          )}
         </section>
 
         <section className="assignment-list">
